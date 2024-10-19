@@ -8,6 +8,13 @@ qr = f'SELECT * FROM {obj.data_table}'
 obj.cur.execute(qr)
 results = obj.cur.fetchall()
 df = pd.read_sql(qr, obj.con)
+
+df.pop('category')
+df.pop('zip_code')
+df.pop('is_zip')
+df.pop('is_login')
+df.pop('input_pid')
+df.pop('Id')
 date_today = datetime.datetime.today()
 date_today_strf = date_today.strftime("%d_%m_%Y")
 

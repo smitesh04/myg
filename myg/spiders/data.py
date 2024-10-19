@@ -27,8 +27,9 @@ class DataSpider(scrapy.Spider):
 
 
     def start_requests(self):
-        # obj.cur.execute(f"select * from {obj.pl_table} where status=0 limit {self.start},{self.end}")
-        obj.cur.execute(f"select * from {obj.pl_table} where link='https://www.myg.in/home-and-kitchen/mixer-juicer-grinder/panasonic-ae-475-750-watts-monster-mixer-grinder-red/' limit {self.start},{self.end}")
+        url = 'https://www.myg.in/accessories-offer/remax-portable-micro-usb-to-usb-otg-adapter-for-android-mobile-u-disk-mouse-keyboard/'
+        obj.cur.execute(f"select * from {obj.pl_table} where status=0 limit {self.start},{self.end}")
+        # obj.cur.execute(f"select * from {obj.pl_table} where link='{url}' limit {self.start},{self.end}")
         rows = obj.cur.fetchall()
         for row in rows:
             link = row['link']
@@ -53,6 +54,10 @@ class DataSpider(scrapy.Spider):
         sku = response.xpath('//meta[@itemprop="sku"]/@content').get()
         product_name = response.xpath('//meta[@itemprop="name"]/@content').get()
         product_images_list = response.xpath("//meta[@itemprop='image']/@content").getall()
+        product_images_list2 = list()
+        for i in product_images_list:
+            if i not in product_images_list2:
+                product_images_list2.append(i)
         product_images = ' | '.join(product_images_list)
         product_id_raw = response.xpath("//div[contains(@class,'ty-account-info__orders')]//input[@name='return_url']/@value").get()
         if not product_id_raw:
@@ -74,21 +79,21 @@ class DataSpider(scrapy.Spider):
         category_hierachy = ' | '.join(category_hierachy_)
         discounted_price_list = response.xpath('//div[@class="ty-product-prices"]//span[@class="ty-price-num"]/text()').getall()
         discounted_price = ''.join(discounted_price_list)
-        discounted_price = discounted_price.replace(',', '').replace('₹', '').strip()
+        discounted_price = discounted_price.replace(',', '').replace('₹', '').replace('myG Price', '').strip()
 
         stock_info = response.xpath("//div[contains(@class,'ty-product-detail')]//span[contains(@class,'ty-qty-in-stock')]/text()[1]").get()
         if stock_info:
             if 'in stock' in stock_info.lower():
-                stock = 'FALSE'
+                stock = False
             else:
-                stock = 'TRUE'
+                stock = True
         else:
-            stock = 'TRUE'
+            stock = True
         discount_amount = response.xpath("//div[contains(@class,'ty-product-detail')]//span[contains(@class,'ty-save-price')]/bdi/span/text()").get()
         discount_percentage = response.xpath("//div[contains(@class,'ty-product-detail')]//span[contains(@class,'ty-save-price')]/bdi/../span/text()").get()
         if not discount_percentage:
             discount_percentage = ''
-        mrp_amount_list = response.xpath("//div[contains(@class,'ty-product-detail')]//span[contains(@class,'ty-strike')]/bdi//span/text()").getall()
+        mrp_amount_list = response.xpath("//div[contains(@class,'ty-product-detail')]//span[contains(@class,'ty-strike')]/bdi//span[contains(@class,'ty-list-price')]/text()").getall()
         mrp_amount = ''.join(mrp_amount_list)
         mrp_amount = mrp_amount.replace(',', '').replace('₹', '').strip()
         product_url = kwargs['link']
@@ -99,24 +104,10 @@ class DataSpider(scrapy.Spider):
             ratings = 0
         try:
             ratings_count = response.xpath("//div[@class='ty-product-block__rating']//a[contains(@class,'ty-discussion__review-a')]/text()").get()
-            ratings_count = ratings_count.replace('reviews', '')
+            ratings_count = ratings_count.replace('reviews', '').replace('review', '')
             ratings_count = ratings_count.strip()
         except:
             ratings_count = 0
-
-        # manufacturing_info_path = response.xpath("//div[@class='ty-product-feature-group']/h3[contains(text(), 'Manufacturing')]/..//div[@class='ty-product-feature']/div[contains(@class,'ty-product-feature__label')]")
-        # manufacturing_info_jsn = {}
-        # for manufacture in manufacturing_info_path:
-        #     manufacture_label = manufacture.xpath("./div[contains(@class,'ty-product-feature__label')]/text()").get()
-        #     manufacture_value = manufacture.xpath("./div[contains(@class,'ty-product-feature__value')]/text()").get()
-        #     manufacturing_info_jsn[manufacture_label.strip()] = manufacture_value.strip()
-
-        # general_info_path = response.xpath("//div[@class='ty-product-feature-group']/h3[contains(text(), 'General')]/..//div[@class='ty-product-feature']/div[contains(@class,'ty-product-feature__label')]")
-        # general_info_jsn = {}
-        # for general in general_info_path:
-        #     general_label = general.xpath("./div[contains(@class,'ty-product-feature__label')]/text()").get()
-        #     general_value = general.xpath("./div[contains(@class,'ty-product-feature__value')]/text()").get()
-        #     general_info_jsn[general_label.strip()] = general_value.strip()
 
         brand = response.xpath("//div[@class='ty-product-feature__label' and contains(text(),'Brand:')]//following-sibling::div/text()").get()
         feature_path = response.xpath("//div[@id='content_features']//div[@class='ty-product-feature-group']")
@@ -132,10 +123,15 @@ class DataSpider(scrapy.Spider):
                 feature_label = feature_.xpath('.//div[@class="ty-product-feature__label"]/text()').get()
                 feature_label = feature_label.replace(':', '').strip()
                 feature_value = feature_.xpath('.//div[@class="ty-product-feature__value"]//text()').get()
-                feature_value = feature_value.strip()
+                feature_value = feature_value.replace("\u200e", "").strip()
                 feature_dict_sub[feature_label] = feature_value
             features_dict[feature_header] = feature_dict_sub
         features_dict['brand'] = brand
+
+        highlights_header = response.xpath("//div[contains(@class,'ty-product-block__description')]/h3/text()").get()
+        if 'Highlights' in highlights_header:
+            highlights_all = response.xpath("//div[contains(@class,'ty-product-block__description')]//li/text()").getall()
+            features_dict['Highlights'] = highlights_all
 
         description1_raw = response.xpath("//div[@id='content_description']//div[contains(@class,'feature_modular_map_desc')]//text()").getall()
         description1_list = list()
@@ -143,7 +139,8 @@ class DataSpider(scrapy.Spider):
             desc = desc.strip()
             if desc and desc not in description1_list:
                 description1_list.append(desc)
-        description1 = ' | '.join(description1_list)
+        # description1 = ' | '.join(description1_list)
+        description1 = ' '.join(description1_list)
 
         description2_raw = response.xpath("//div[@id='content_description']//p//text()").getall()
         description2_list = list()
@@ -151,7 +148,8 @@ class DataSpider(scrapy.Spider):
             desc = desc.strip()
             if desc and desc not in description2_list:
                 description2_list.append(desc)
-        description2 = ' | '.join(description2_list)
+        # description2 = ' | '.join(description2_list)
+        description2 = ' '.join(description2_list)
 
         description = ''
         if description1:
@@ -159,27 +157,40 @@ class DataSpider(scrapy.Spider):
         elif description2:
             description = description2
 
+        try:
+            variation_id_list = list()
+            variations_path_raw = response.xpath("//script[@class='cm-ajax-force' and contains(text(),'productDataIndex')][1]/text()").get()
+            variation_id_all = re.findall("'item_id': '.*?',", variations_path_raw)
+            for varia in variation_id_all:
+                varia = varia.replace("'item_id': '", '').replace("',", '')
+                if varia not in variation_id_list:
+                    variation_id_list.append(varia)
+        except:
+            variation_id_list = list()
+
         others_jsn = {}
         others_jsn['MOQ'] = '1'
         others_jsn['delivery'] = 'myg_logout'
         others_jsn['data_vendor'] = 'Actowiz'
         others_jsn['brand'] = brand
-        others_jsn['images'] = product_images_list
-        # others_jsn['manufacturing_info'] = manufacturing_info_jsn
-        # others_jsn['general'] = general_info_jsn
+        others_jsn['images'] = product_images_list2
         if description:
             others_jsn['Description'] = description
         others_jsn['product_id'] = product_id
-        others_jsn['maximum_retail_price'] = mrp_amount
-        others_jsn['selling_price'] = discounted_price
+        others_jsn['Maximum Retail Price'] = mrp_amount
+        others_jsn['Price'] = discounted_price
         others_jsn['product_info'] = features_dict
-
+        if variation_id_list:
+            others_jsn['variation_id'] = variation_id_list
         others_jsn = json.dumps(others_jsn)
-
-
-
+        others_jsn = others_jsn.replace("\u200e", "")
 
         item = MygItem()
+        if not stock:
+            arrival_date = datetime.datetime.today() + datetime.timedelta(days=2)
+            arrival_date_strf = arrival_date.strftime("%Y-%m-%d")
+            arrival_date_strf = arrival_date_strf + ' 00:00:00'
+            item['arrival_date'] = arrival_date_strf
         item['input_pid'] = 'N/A'
         item['product_id'] = product_id
         item['catalog_name'] = catalogue_name
@@ -191,6 +202,10 @@ class DataSpider(scrapy.Spider):
             discounted_price = 'N/A'
         item['product_price'] = discounted_price
         item['shipping_charges'] = 'N/A'
+        if stock:
+            stock = 'True'
+        else:
+            stock = 'False'
         item['is_sold_out'] = stock
         if not discount_percentage:
             discount_percentage = 'N/A'
@@ -210,7 +225,6 @@ class DataSpider(scrapy.Spider):
         item['country_code'] = 'IN'
         item['others'] = others_jsn
         item['category'] = category
-
 
         yield item
 
