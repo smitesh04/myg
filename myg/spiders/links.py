@@ -11,8 +11,6 @@ obj = DbConfig()
 
 class LinksSpider(scrapy.Spider):
     name = "links"
-    # allowed_domains = ["."]
-    # start_urls = ["https://www.myg.in/sitemap.xml"]
     def start_requests(self):
         url = "https://www.myg.in/sitemap.xml"
         yield scrapy.Request(url, callback=self.parse)
@@ -36,12 +34,6 @@ class LinksSpider(scrapy.Spider):
                     obj.con.commit()
                     print(link_type, link)
                 except Exception as e:print(e)
-
-
-
-
-
-        print()
 
 
 if __name__ == '__main__':

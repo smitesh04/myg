@@ -18,18 +18,13 @@ today_date = datetime.datetime.today().strftime('%d_%m_%Y')
 
 class DataSpider(scrapy.Spider):
     name = "data"
-    # allowed_domains = ["."]
-    # start_urls = ["https://."]
 
     def __init__(self, start, end):
         self.start = start
         self.end = end
 
-
     def start_requests(self):
-        url = 'https://www.myg.in/accessories-offer/remax-portable-micro-usb-to-usb-otg-adapter-for-android-mobile-u-disk-mouse-keyboard/'
         obj.cur.execute(f"select * from {obj.pl_table} where status=0 limit {self.start},{self.end}")
-        # obj.cur.execute(f"select * from {obj.pl_table} where link='{url}' limit {self.start},{self.end}")
         rows = obj.cur.fetchall()
         for row in rows:
             link = row['link']
@@ -51,24 +46,19 @@ class DataSpider(scrapy.Spider):
         if not os.path.exists(filename):
             page_write(pagesave_dir, filename, response.text)
 
-        sku = response.xpath('//meta[@itemprop="sku"]/@content').get()
         product_name = response.xpath('//meta[@itemprop="name"]/@content').get()
         product_images_list = response.xpath("//meta[@itemprop='image']/@content").getall()
         product_images_list2 = list()
         for i in product_images_list:
             if i not in product_images_list2:
                 product_images_list2.append(i)
-        product_images = ' | '.join(product_images_list)
         product_id_raw = response.xpath("//div[contains(@class,'ty-account-info__orders')]//input[@name='return_url']/@value").get()
         if not product_id_raw:
             product_id_raw = response.xpath("//input[@name='return_url']/@value").get()
         product_id = re.findall('product_id=.*?&', product_id_raw)[0]
         product_id = product_id.replace('product_id=', '').replace('&', '')
 
-        # catalogue_name = kwargs['link'].split('/')[-2]
         catalogue_name = product_name
-        catalogue_id = ''
-        # product_name = response.xpath()
         category_hierachy_list = response.xpath('//div[@id="breadcrumbs_11"]//span[@itemprop="itemListElement"]//bdi/text()').getall()
         category_hierachy_dict = dict()
         for lvl, cat in zip(range(1,len(category_hierachy_list)+1), category_hierachy_list):
@@ -76,7 +66,6 @@ class DataSpider(scrapy.Spider):
 
         category_hierachy_ = category_hierachy_list[1:]
         category = category_hierachy_list[1]
-        category_hierachy = ' | '.join(category_hierachy_)
         discounted_price_list = response.xpath('//div[@class="ty-product-prices"]//span[@class="ty-price-num"]/text()').getall()
         discounted_price = ''.join(discounted_price_list)
         discounted_price = discounted_price.replace(',', '').replace('₹', '').replace('myG Price', '').strip()
@@ -89,7 +78,6 @@ class DataSpider(scrapy.Spider):
                 stock = True
         else:
             stock = True
-        discount_amount = response.xpath("//div[contains(@class,'ty-product-detail')]//span[contains(@class,'ty-save-price')]/bdi/span/text()").get()
         discount_percentage = response.xpath("//div[contains(@class,'ty-product-detail')]//span[contains(@class,'ty-save-price')]/bdi/../span/text()").get()
         if not discount_percentage:
             discount_percentage = ''
@@ -111,7 +99,6 @@ class DataSpider(scrapy.Spider):
 
         brand = response.xpath("//div[@class='ty-product-feature__label' and contains(text(),'Brand:')]//following-sibling::div/text()").get()
         feature_path = response.xpath("//div[@id='content_features']//div[@class='ty-product-feature-group']")
-        features_list = list()
 
         features_dict = {}
         for feature in feature_path:
@@ -129,9 +116,12 @@ class DataSpider(scrapy.Spider):
         features_dict['brand'] = brand
 
         highlights_header = response.xpath("//div[contains(@class,'ty-product-block__description')]/h3/text()").get()
-        if 'Highlights' in highlights_header:
-            highlights_all = response.xpath("//div[contains(@class,'ty-product-block__description')]//li/text()").getall()
-            features_dict['Highlights'] = highlights_all
+
+        try:
+            if 'Highlights' in highlights_header:
+                highlights_all = response.xpath("//div[contains(@class,'ty-product-block__description')]//li/text()").getall()
+                features_dict['Highlights'] = highlights_all
+        except:pass
 
         description1_raw = response.xpath("//div[@id='content_description']//div[contains(@class,'feature_modular_map_desc')]//text()").getall()
         description1_list = list()
@@ -139,7 +129,6 @@ class DataSpider(scrapy.Spider):
             desc = desc.strip()
             if desc and desc not in description1_list:
                 description1_list.append(desc)
-        # description1 = ' | '.join(description1_list)
         description1 = ' '.join(description1_list)
 
         description2_raw = response.xpath("//div[@id='content_description']//p//text()").getall()
@@ -148,7 +137,6 @@ class DataSpider(scrapy.Spider):
             desc = desc.strip()
             if desc and desc not in description2_list:
                 description2_list.append(desc)
-        # description2 = ' | '.join(description2_list)
         description2 = ' '.join(description2_list)
 
         description = ''
@@ -186,11 +174,14 @@ class DataSpider(scrapy.Spider):
         others_jsn = others_jsn.replace("\u200e", "")
 
         item = MygItem()
+        item['shipping_charges'] = 'N/A'
         if not stock:
             arrival_date = datetime.datetime.today() + datetime.timedelta(days=2)
             arrival_date_strf = arrival_date.strftime("%Y-%m-%d")
             arrival_date_strf = arrival_date_strf + ' 00:00:00'
             item['arrival_date'] = arrival_date_strf
+            item['shipping_charges'] = '0'
+
         item['input_pid'] = 'N/A'
         item['product_id'] = product_id
         item['catalog_name'] = catalogue_name
@@ -201,7 +192,6 @@ class DataSpider(scrapy.Spider):
         if not discounted_price:
             discounted_price = 'N/A'
         item['product_price'] = discounted_price
-        item['shipping_charges'] = 'N/A'
         if stock:
             stock = 'True'
         else:

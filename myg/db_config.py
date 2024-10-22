@@ -50,13 +50,6 @@ class DbConfig():
                   `position` varchar(5) DEFAULT 'N/A',
                   `country_code` varchar(2) DEFAULT 'IN',
                   `others` json DEFAULT NULL,
-                  `is_login` int DEFAULT '0',
-                  `is_zip` int DEFAULT '0',
-                  `zip_code` int DEFAULT '0',
-                  `shipping_charges_json` json DEFAULT (json_object()),
-                  `product_price_json` json DEFAULT (json_object()),
-                  `mrp_json` json DEFAULT (json_object()),
-                  `discount_json` json DEFAULT (json_object()),
                   PRIMARY KEY (`Id`),
                   UNIQUE KEY `product_id` (`product_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -80,7 +73,6 @@ class DbConfig():
         try:
             self.cur.execute(insert_db, tuple(item.values()))
             self.con.commit()
-
             self.update_pl_status(item['product_url'])
         except Exception as e:
             print(e)

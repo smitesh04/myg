@@ -26,10 +26,6 @@ class LinksProductSpider(scrapy.Spider):
 
     def start_requests(self):
         obj.cur.execute(f"select * from {obj.pl_table_sitemap} where status=0 and type='category' limit {self.start},{self.end}")
-        # obj.cur.execute(f"select * from {obj.pl_table_sitemap} where id='1'") #with products
-        # obj.cur.execute(f"select * from {obj.pl_table_sitemap} where id=3134") #without products
-        # obj.cur.execute(f"select * from {obj.pl_table_sitemap} where id=2943") #without products
-
 
         rows = obj.cur.fetchall()
         for row in rows:

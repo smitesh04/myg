@@ -29,15 +29,6 @@ with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
     workbook = writer.book
     worksheet = writer.sheets['Sheet1']
 
-    # # Define cell formats
-    # number_format = workbook.add_format({'num_format': '#,##0.00'})  # For formatting numbers with two decimal places
-    # bold_format = workbook.add_format({'bold': True})
-    #
-    # # Apply formatting to the entire column
-    # worksheet.set_column('B:B', 18, number_format)  # Format 'Price' column
-    # worksheet.set_column('C:C', 18, number_format)  # Format 'Discount' column
-    #
-    # # Set the header format
     header_format = workbook.add_format({'bold': True, 'bg_color': '#DCE6F1', 'border': 1})
     for col_num, value in enumerate(df.columns):
         worksheet.write(0, col_num, value, header_format)
