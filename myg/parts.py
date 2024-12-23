@@ -4,9 +4,10 @@ obj = DbConfig()
 # obj.cur.execute(f"select count(id) from {obj.pl_table_sitemap} where status=0 and type='category'")
 obj.cur.execute(f"select count(id) from {obj.pl_table} where status=0")
 rows = obj.cur.fetchall()
-end = rows[0]['count(id)']
+# end = rows[0]['count(id)']
+end = 60
 start = 0
-num_parts = 10
+num_parts = 60
 
 def id_between():
     # Calculate the number of items in each part
@@ -36,10 +37,12 @@ def limit():
         part_end = part_start + part_size - 1
         if part == num_parts - 1:  # Ensure the last part goes to the end
             part_end = end
+
         # cmd = f'start "Part:{part + 1}" scrapy crawl links_product -a start={part_start} -a end={part_end - part_start + 1}'
-        cmd = f'start "Part:{part + 1}" scrapy crawl data -a start={part_start} -a end={part_end - part_start + 1}'
+        # cmd = f'start "Part:{part + 1}" scrapy crawl data -a start={part_start} -a end={part_end - part_start + 1}'
+        cmd = f'start "Part:{part + 1}" scrapy crawl zepto_assrt -a start={part_start} -a end={part_end - part_start + 1}'
         print(cmd)
-        os.system(cmd)
+        # os.system(cmd)
 
 # id_between()
 limit()
