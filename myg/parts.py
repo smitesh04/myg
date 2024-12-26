@@ -40,7 +40,7 @@ def limit():
 
         # cmd = f'start "Part:{part + 1}" scrapy crawl links_product -a start={part_start} -a end={part_end - part_start + 1}'
         # cmd = f'start "Part:{part + 1}" scrapy crawl data -a start={part_start} -a end={part_end - part_start + 1}'
-        cmd = f'start "Part:{part + 1}" scrapy crawl zepto_assrt -a start={part_start} -a end={part_end - part_start + 1}'
+        cmd = f'start "Part:{part + 1}" scrapy crawl bigbasket_assrt -a start={part_start} -a end={part_end - part_start + 1}'
         print(cmd)
         # os.system(cmd)
 
